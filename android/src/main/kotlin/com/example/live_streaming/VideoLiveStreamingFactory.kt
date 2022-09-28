@@ -1,4 +1,4 @@
-package com.example.video_live_streaming
+package com.example.live_streaming
 
 import android.content.Context
 import io.flutter.plugin.common.BinaryMessenger

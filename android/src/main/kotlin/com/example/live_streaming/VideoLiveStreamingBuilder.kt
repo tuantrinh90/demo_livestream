@@ -1,7 +1,6 @@
-package com.example.video_live_streaming
+package com.example.live_streaming
 
 import android.content.Context
-import androidx.lifecycle.Lifecycle
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.platform.PlatformView
 

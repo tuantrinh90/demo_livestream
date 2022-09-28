@@ -1,4 +1,4 @@
-package com.example.video_live_streaming
+package com.example.live_streaming
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -38,8 +38,7 @@ class VideoLiveStreamingController(
         private val TAG = VideoLiveStreamingController::class.java.simpleName
     }
 
-    private val methodChannel: MethodChannel =
-        MethodChannel(binaryMessenger, "video_live_streaming_$id")
+    private val methodChannel: MethodChannel = MethodChannel(binaryMessenger, "video_live_streaming_$id")
 
     private val lifeCycleHashcode: Int
     private val constraintLayout: ConstraintLayout
@@ -50,16 +49,11 @@ class VideoLiveStreamingController(
     private var rtcEngine: RtcEngine? = null
     private var handler: Handler? = null
 
-
-    private var appId: String? = "088300519c194e81a67b1f7925b47296"
-    private var accessToken: String? = "006088300519c194e81a67b1f7925b47296IAAtboxj1hChqnfu+HWMbmLEHo5TgpeoJUJOqfIPW9KxKEncfOMNvtUaEADp7gAAO/4zYwEAAQB7gTRj"
-    private var uid: Int = 2
-    private var channelId: String? = "butai-channel-111"
+    private var uid: Int = 0
 
     private var timer: Timer? = null
 
     private var disposed: Boolean = false
-    private var joined = false
 
     /**
      * IRtcEngineEventHandler is an abstract class providing default implementation.
@@ -71,12 +65,7 @@ class VideoLiveStreamingController(
         override fun onWarning(warn: Int) {
             super.onWarning(warn)
             Log.d(
-                TAG,
-                String.format(
-                    "#onWarning code %d message %s",
-                    warn,
-                    RtcEngine.getErrorDescription(warn)
-                )
+                TAG, String.format("#onWarning code %d message %s", warn, RtcEngine.getErrorDescription(warn))
             )
         }
 
@@ -84,14 +73,7 @@ class VideoLiveStreamingController(
          * Error code: https://docs.agora.io/en/Voice/API%20Reference/java/classio_1_1agora_1_1rtc_1_1_i_rtc_engine_event_handler_1_1_error_code.html*/
         override fun onError(err: Int) {
             super.onError(err)
-            Log.e(
-                TAG,
-                String.format(
-                    "#onError code %d message %s",
-                    err,
-                    RtcEngine.getErrorDescription(err)
-                )
-            )
+            Log.e(TAG, String.format("#onError code %d message %s", err, RtcEngine.getErrorDescription(err)))
         }
 
         /**Occurs when a user leaves the channel.
@@ -111,7 +93,6 @@ class VideoLiveStreamingController(
         override fun onJoinChannelSuccess(channel: String?, uid: Int, elapsed: Int) {
             super.onJoinChannelSuccess(channel, uid, elapsed)
             Log.i(TAG, String.format("#onJoinChannelSuccess channel %s uid %d", channel, uid))
-            joined = true
             this@VideoLiveStreamingController.uid = uid
         }
 
@@ -225,19 +206,15 @@ class VideoLiveStreamingController(
                     )
                 )
                 // Setup remote video to render
-                val result =
-                    rtcEngine?.setupRemoteVideo(VideoCanvas(surfaceView, RENDER_MODE_HIDDEN, uid))
-                /*if (result != -1) {
+                val result = rtcEngine?.setupRemoteVideo(VideoCanvas(surfaceView, RENDER_MODE_HIDDEN, uid))
+                if (result != -1) {
                     timer = Timer()
                     timer?.schedule(object : TimerTask() {
                         override fun run() {
-                            getBitMapFromSurfaceView(surfaceView) { bitmap ->
-                                val drawable: Drawable = BitmapDrawable(context.resources, bitmap)
-                                fragmentLayoutLocal?.background = drawable
-                            }
+                            getBitMapFromSurfaceView(surfaceView)
                         }
-                    }, 0, 50)
-                }*/
+                    }, 50, 50)
+                }
             }
         }
 
@@ -266,10 +243,9 @@ class VideoLiveStreamingController(
     init {
         methodChannel.setMethodCallHandler(this)
         lifeCycleHashcode = lifecycleProvider.getLifecycle().hashCode()
-        constraintLayout = LayoutInflater.from(context)
-            .inflate(com.example.live_streaming.R.layout.video_live_streaming_layout, null) as ConstraintLayout
-        frameLayoutRemote = constraintLayout.findViewById(com.example.live_streaming.R.id.fl_remote)
-        fragmentLayoutLocal = constraintLayout.findViewById(com.example.live_streaming.R.id.fl_local)
+        constraintLayout = LayoutInflater.from(context).inflate(R.layout.video_live_streaming_layout, null) as ConstraintLayout
+        frameLayoutRemote = constraintLayout.findViewById(R.id.fl_remote)
+        fragmentLayoutLocal = constraintLayout.findViewById(R.id.fl_local)
         lifecycleProvider.getLifecycle()?.also { it.addObserver(this) }
     }
 
@@ -277,10 +253,19 @@ class VideoLiveStreamingController(
         Log.d(TAG, "#onMethodCall: method = ${call.method}")
         when (call.method) {
             "stream#config" -> {
-                appId = call.argument("appId")
-                accessToken = call.argument("accessToken")
-                channelId = call.argument("channelId")
+                val appId = call.argument("appId") as? String
+                val accessToken = call.argument("accessToken") as? String
+                val channelId = call.argument("channelId") as? String
                 uid = call.argument("uid") ?: 0
+
+                try {
+                    timer?.cancel()
+                    rtcEngine?.leaveChannel()
+                    rtcEngine = RtcEngine.create(context.applicationContext, appId, iRtcEngineEventHandler)
+                    joinChannel(channelId, uid, accessToken)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
     }
@@ -307,24 +292,11 @@ class VideoLiveStreamingController(
     override fun onCreate(owner: LifecycleOwner) {
         super.onCreate(owner)
         handler = Handler(Looper.getMainLooper())
-        Log.d(
-            TAG,
-            "#onCreate: appId = $appId, token = $accessToken, uid = $uid, channelId = $channelId"
-        )
-
-        try {
-            rtcEngine = RtcEngine.create(context.applicationContext, appId, iRtcEngineEventHandler)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
     }
 
     override fun onResume(owner: LifecycleOwner) {
         super.onResume(owner)
         Log.d(TAG, "#onResume")
-        timer?.cancel()
-        rtcEngine?.leaveChannel()
-        joinChannel(channelId, uid)
     }
 
     override fun onDestroy(owner: LifecycleOwner) {
@@ -332,17 +304,13 @@ class VideoLiveStreamingController(
         destroyVideoLiveStreaming()
     }
 
-    private fun joinChannel(channelId: String? = null, uid: Int = 0) {
+    private fun joinChannel(channelId: String? = null, uid: Int = 0, accessToken: String? = null) {
         /** Sets the channel profile of the Agora RtcEngine.
         CHANNEL_PROFILE_COMMUNICATION(0): (Default) The Communication profile.
         Use this profile in one-on-one calls or group calls, where all users can talk freely.
         CHANNEL_PROFILE_LIVE_BROADCASTING(1): The Live-Broadcast profile. Users in a live-broadcast
         channel have a role as either broadcaster or audience. A broadcaster can both send and receive streams;
         an audience can only receive streams.*/
-
-        if (channelId.isNullOrEmpty()) return
-
-        if (uid == 0) return
 
         rtcEngine?.setChannelProfile(Constants.CHANNEL_PROFILE_LIVE_BROADCASTING)
         rtcEngine?.setClientRole(IRtcEngineEventHandler.ClientRole.CLIENT_ROLE_BROADCASTER)
@@ -356,8 +324,6 @@ class VideoLiveStreamingController(
         screenCaptureParameters.videoCaptureParameters = videoCaptureParameters
         rtcEngine?.startScreenCapture(screenCaptureParameters)
 
-        if (accessToken.isNullOrEmpty()) accessToken = null
-
         /** Allows a user to join a channel.
         if you do not specify the uid, we will generate the uid for you*/
         val option = ChannelMediaOptions().apply {
@@ -365,8 +331,7 @@ class VideoLiveStreamingController(
             autoSubscribeVideo = true
         }
 
-        val result =
-            rtcEngine?.joinChannel(accessToken, channelId, "Extra Optional Data", uid, option)
+        val result = rtcEngine?.joinChannel(accessToken, channelId, "Extra Optional Data", uid, option)
         if (result == null || result != 0) {
             // Usually happens with invalid parameters
             // Error code description can be found at:
@@ -381,7 +346,7 @@ class VideoLiveStreamingController(
      * Work with Surface View, Video View
      * Won't work on Normal View
      */
-    private fun getBitMapFromSurfaceView(videoView: SurfaceView, callback: (Bitmap?) -> Unit) {
+    private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
         Log.d(TAG, "#getBitMapFromSurfaceView")
         val bitmap: Bitmap = Bitmap.createBitmap(
             videoView.width,
@@ -396,7 +361,8 @@ class VideoLiveStreamingController(
                 PixelCopy.request(
                     videoView, bitmap, { copyResult ->
                         if (copyResult == PixelCopy.SUCCESS) {
-                            callback(bitmap)
+                            val drawable: Drawable = BitmapDrawable(context.resources, bitmap)
+                            fragmentLayoutLocal?.background = drawable
                         }
                         handlerThread.quitSafely()
                     },
@@ -404,7 +370,6 @@ class VideoLiveStreamingController(
                 )
             }
         } catch (e: IllegalArgumentException) {
-            callback(null)
             // PixelCopy may throw IllegalArgumentException, make sure to handle it
             e.printStackTrace()
         }

@@ -27,11 +27,11 @@ class _MyAppState extends State<MyApp> {
       alignment: Alignment.center,
       child: VideoLiveStreamingView(
         onCreated: (controller) {
-         /* controller.startStreaming(Configuration(
+          controller.startStreaming(Configuration(
               appId: '088300519c194e81a67b1f7925b47296',
-              accessToken: '006088300519c194e81a67b1f7925b47296IAAtboxj1hChqnfu+HWMbmLEHo5TgpeoJUJOqfIPW9KxKEncfOMNvtUaEADp7gAAO/4zYwEAAQB7gTRj',
+              accessToken: '006088300519c194e81a67b1f7925b47296IADwVFvTmjhe2fGUDIXPkUlvqqhaNANb/aoUX++g1AfeMEncfOMNvtUaEAAROAEA4qc1YwEAAQAiKzZj',
               channelId: 'butai-channel-111',
-              uid: 2));*/
+              uid: 2));
         },
         onCompletion: (controller) {
 

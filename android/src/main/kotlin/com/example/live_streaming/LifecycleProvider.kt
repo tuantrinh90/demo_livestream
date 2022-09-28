@@ -1,4 +1,4 @@
-package com.example.video_live_streaming
+package com.example.live_streaming
 
 import androidx.annotation.Nullable
 import androidx.lifecycle.Lifecycle
