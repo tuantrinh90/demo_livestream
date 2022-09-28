@@ -12,6 +12,7 @@ import android.util.Log
 import android.view.*
 import android.widget.FrameLayout
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import io.agora.rtc.Constants
@@ -209,12 +210,21 @@ class VideoLiveStreamingController(
 
                 // Create render view by RtcEngine
                 surfaceView = RtcEngine.CreateRendererView(context).apply {
-                    setZOrderMediaOverlay(false)
+                    setZOrderMediaOverlay(true)
                     setZOrderOnTop(false)
                 }
 
+                val layoutParam = FrameLayout.LayoutParams(350, 200, Gravity.BOTTOM)
+                layoutParam.setMargins(50, 0, 0, 0)
+                surfaceView?.layoutParams = layoutParam
+                surfaceView?.setPadding(2,2,2,2)
+                surfaceView?.background = ContextCompat.getDrawable(
+                    context,
+                    R.drawable.custom_background_remote_video_view
+                )
+
                 // Add to the remote video view
-                frameContainer?.addView(surfaceView, FrameLayout.LayoutParams(300, 200, Gravity.BOTTOM))
+                frameContainer?.addView(surfaceView)
 
                 // Add to the local video view
                 localVideoView = FrameLayout(context).apply {
@@ -272,7 +282,8 @@ class VideoLiveStreamingController(
 
                 try {
                     rtcEngine?.leaveChannel()
-                    rtcEngine = RtcEngine.create(context.applicationContext, appId, iRtcEngineEventHandler)
+                    rtcEngine =
+                        RtcEngine.create(context.applicationContext, appId, iRtcEngineEventHandler)
                     joinChannel(channelId, uid, accessToken)
                 } catch (e: Exception) {
                     e.printStackTrace()
