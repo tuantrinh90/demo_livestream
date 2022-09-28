@@ -23,7 +23,7 @@ class _MyAppState extends State<MyApp> {
 
   Widget _buildVideoLiveStreamingWidget() {
     return Container(
-      height: 300,
+      height: 200,
       alignment: Alignment.center,
       child: VideoLiveStreamingView(
         onCreated: (controller) {

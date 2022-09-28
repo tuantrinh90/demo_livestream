@@ -38,13 +38,15 @@ class VideoLiveStreamingController(
         private val TAG = VideoLiveStreamingController::class.java.simpleName
     }
 
-    private val methodChannel: MethodChannel = MethodChannel(binaryMessenger, "video_live_streaming_$id")
+    private val methodChannel: MethodChannel =
+        MethodChannel(binaryMessenger, "video_live_streaming_$id")
 
     private val lifeCycleHashcode: Int
     private val constraintLayout: ConstraintLayout
 
-    private var frameLayoutRemote: FrameLayout? = null
-    private var fragmentLayoutLocal: FrameLayout? = null
+    private var frameContainer: FrameLayout? = null
+    private var localVideoView: FrameLayout? = null
+    private var surfaceView: SurfaceView? = null
 
     private var rtcEngine: RtcEngine? = null
     private var handler: Handler? = null
@@ -65,7 +67,12 @@ class VideoLiveStreamingController(
         override fun onWarning(warn: Int) {
             super.onWarning(warn)
             Log.d(
-                TAG, String.format("#onWarning code %d message %s", warn, RtcEngine.getErrorDescription(warn))
+                TAG,
+                String.format(
+                    "#onWarning code %d message %s",
+                    warn,
+                    RtcEngine.getErrorDescription(warn)
+                )
             )
         }
 
@@ -73,7 +80,14 @@ class VideoLiveStreamingController(
          * Error code: https://docs.agora.io/en/Voice/API%20Reference/java/classio_1_1agora_1_1rtc_1_1_i_rtc_engine_event_handler_1_1_error_code.html*/
         override fun onError(err: Int) {
             super.onError(err)
-            Log.e(TAG, String.format("#onError code %d message %s", err, RtcEngine.getErrorDescription(err)))
+            Log.e(
+                TAG,
+                String.format(
+                    "#onError code %d message %s",
+                    err,
+                    RtcEngine.getErrorDescription(err)
+                )
+            )
         }
 
         /**Occurs when a user leaves the channel.
@@ -191,30 +205,28 @@ class VideoLiveStreamingController(
             handler?.post {
 
                 /**Display remote video stream*/
-                frameLayoutRemote?.removeAllViews()
+                frameContainer?.removeAllViews()
 
                 // Create render view by RtcEngine
-                val surfaceView = RtcEngine.CreateRendererView(context)
-                surfaceView.setZOrderMediaOverlay(true)
-
-                // Add to the remote container
-                frameLayoutRemote?.addView(
-                    surfaceView,
-                    FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                )
-                // Setup remote video to render
-                val result = rtcEngine?.setupRemoteVideo(VideoCanvas(surfaceView, RENDER_MODE_HIDDEN, uid))
-                if (result != -1) {
-                    timer = Timer()
-                    timer?.schedule(object : TimerTask() {
-                        override fun run() {
-                            getBitMapFromSurfaceView(surfaceView)
-                        }
-                    }, 50, 50)
+                surfaceView = RtcEngine.CreateRendererView(context).apply {
+                    setZOrderMediaOverlay(false)
+                    setZOrderOnTop(false)
                 }
+
+                // Add to the remote video view
+                frameContainer?.addView(surfaceView, FrameLayout.LayoutParams(300, 200, Gravity.BOTTOM))
+
+                // Add to the local video view
+                localVideoView = FrameLayout(context).apply {
+                    layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                    )
+                }
+                frameContainer?.addView(localVideoView)
+
+                // Setup remote video to render
+                rtcEngine?.setupRemoteVideo(VideoCanvas(surfaceView, RENDER_MODE_HIDDEN, uid))
             }
         }
 
@@ -243,9 +255,9 @@ class VideoLiveStreamingController(
     init {
         methodChannel.setMethodCallHandler(this)
         lifeCycleHashcode = lifecycleProvider.getLifecycle().hashCode()
-        constraintLayout = LayoutInflater.from(context).inflate(R.layout.video_live_streaming_layout, null) as ConstraintLayout
-        frameLayoutRemote = constraintLayout.findViewById(R.id.fl_remote)
-        fragmentLayoutLocal = constraintLayout.findViewById(R.id.fl_local)
+        constraintLayout = LayoutInflater.from(context)
+            .inflate(R.layout.video_live_streaming_layout, null) as ConstraintLayout
+        frameContainer = constraintLayout.findViewById(R.id.frame_container)
         lifecycleProvider.getLifecycle()?.also { it.addObserver(this) }
     }
 
@@ -259,7 +271,6 @@ class VideoLiveStreamingController(
                 uid = call.argument("uid") ?: 0
 
                 try {
-                    timer?.cancel()
                     rtcEngine?.leaveChannel()
                     rtcEngine = RtcEngine.create(context.applicationContext, appId, iRtcEngineEventHandler)
                     joinChannel(channelId, uid, accessToken)
@@ -283,7 +294,6 @@ class VideoLiveStreamingController(
 
     private fun destroyVideoLiveStreaming() {
         /**leaveChannel and Destroy the RtcEngine instance*/
-        timer?.cancel()
         rtcEngine?.leaveChannel()
         handler?.post(RtcEngine::destroy)
         rtcEngine = null
@@ -291,12 +301,27 @@ class VideoLiveStreamingController(
 
     override fun onCreate(owner: LifecycleOwner) {
         super.onCreate(owner)
+        Log.d(TAG, "#onCreate")
         handler = Handler(Looper.getMainLooper())
     }
 
     override fun onResume(owner: LifecycleOwner) {
         super.onResume(owner)
         Log.d(TAG, "#onResume")
+        timer = Timer()
+        timer?.schedule(object : TimerTask() {
+            override fun run() {
+                surfaceView?.let {
+                    getBitMapFromSurfaceView(it)
+                }
+            }
+        }, 50, 50)
+    }
+
+    override fun onPause(owner: LifecycleOwner) {
+        super.onPause(owner)
+        Log.d(TAG, "#onPause")
+        timer?.cancel()
     }
 
     override fun onDestroy(owner: LifecycleOwner) {
@@ -331,7 +356,8 @@ class VideoLiveStreamingController(
             autoSubscribeVideo = true
         }
 
-        val result = rtcEngine?.joinChannel(accessToken, channelId, "Extra Optional Data", uid, option)
+        val result =
+            rtcEngine?.joinChannel(accessToken, channelId, "Extra Optional Data", uid, option)
         if (result == null || result != 0) {
             // Usually happens with invalid parameters
             // Error code description can be found at:
@@ -348,6 +374,7 @@ class VideoLiveStreamingController(
      */
     private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
         Log.d(TAG, "#getBitMapFromSurfaceView")
+        if (videoView.width <= 0 || videoView.height <= 0) return
         val bitmap: Bitmap = Bitmap.createBitmap(
             videoView.width,
             videoView.height,
@@ -361,8 +388,10 @@ class VideoLiveStreamingController(
                 PixelCopy.request(
                     videoView, bitmap, { copyResult ->
                         if (copyResult == PixelCopy.SUCCESS) {
-                            val drawable: Drawable = BitmapDrawable(context.resources, bitmap)
-                            fragmentLayoutLocal?.background = drawable
+                            handler?.post {
+                                val drawable: Drawable = BitmapDrawable(context.resources, bitmap)
+                                localVideoView?.background = drawable
+                            }
                         }
                         handlerThread.quitSafely()
                     },
