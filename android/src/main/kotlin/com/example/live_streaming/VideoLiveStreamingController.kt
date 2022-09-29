@@ -66,8 +66,6 @@ class VideoLiveStreamingController(
     private var handler: Handler? = null
 
     private var uid: Int = 0
-    private var channelId: String? = null
-    private var accessToken: String? = null
 
     private var timer: Timer? = null
 
@@ -240,20 +238,7 @@ class VideoLiveStreamingController(
                 }
                 frameContainer?.addView(localVideoView)
 
-                val layoutParam = FrameLayout.LayoutParams(350, 200)
-
-                if (orientationMode == OrientationMode.PORTRAIT) {
-                    layoutParam.gravity = Gravity.BOTTOM
-                    layoutParam.setMargins(50, 0, 0, 50)
-                } else {
-                    layoutParam.gravity = Gravity.TOP
-                    layoutParam.setMargins(50, 50, 0, 0)
-                }
-                surfaceView?.layoutParams = layoutParam
-                surfaceView?.background = ContextCompat.getDrawable(
-                    context,
-                    R.drawable.custom_background_remote_video_view
-                )
+                setLayoutParamRemoteVideo(surfaceView, orientationMode)
 
                 // Add to the remote video view
                 frameContainer?.addView(surfaceView)
@@ -299,8 +284,8 @@ class VideoLiveStreamingController(
         when (call.method) {
             "stream#startStream" -> {
                 val appId = call.argument("appId") as? String
-                accessToken = call.argument("accessToken") as? String
-                channelId = call.argument("channelId") as? String
+                val accessToken = call.argument("accessToken") as? String
+                val channelId = call.argument("channelId") as? String
                 uid = call.argument("uid") ?: 0
 
                 try {
@@ -310,7 +295,7 @@ class VideoLiveStreamingController(
                     // Current, use config default
                     val config = VideoEncoderConfiguration()
                     rtcEngine?.setVideoEncoderConfiguration(config)
-                    joinChannel()
+                    joinChannel(channelId, accessToken)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -318,8 +303,7 @@ class VideoLiveStreamingController(
 
             "stream#orientation" -> {
                 orientationMode = (call.argument("orientation") as? String)?.toOrientationMode()
-                rtcEngine?.leaveChannel()
-                joinChannel()
+                setLayoutParamRemoteVideo(surfaceView, orientationMode)
             }
 
             "stream#sound" -> {
@@ -377,7 +361,7 @@ class VideoLiveStreamingController(
         destroyVideoLiveStreaming()
     }
 
-    private fun joinChannel() {
+    private fun joinChannel(channelId: String? = null, accessToken: String? = null) {
         /** Sets the channel profile of the Agora RtcEngine.
         CHANNEL_PROFILE_COMMUNICATION(0): (Default) The Communication profile.
         Use this profile in one-on-one calls or group calls, where all users can talk freely.
@@ -413,6 +397,25 @@ class VideoLiveStreamingController(
             // cn: https://docs.agora.io/cn/Voice/API%20Reference/java/classio_1_1agora_1_1rtc_1_1_i_rtc_engine_event_handler_1_1_error_code.html
             return
         }
+    }
+
+    private fun setLayoutParamRemoteVideo(
+        surfaceView: SurfaceView? = null,
+        orientationMode: OrientationMode? = null
+    ) {
+        if (orientationMode == OrientationMode.PORTRAIT) {
+            surfaceView?.layoutParams = FrameLayout.LayoutParams(350, 200, Gravity.BOTTOM).apply {
+                setMargins(50, 0, 0, 50)
+            }
+        } else {
+            surfaceView?.layoutParams = FrameLayout.LayoutParams(350, 200, Gravity.TOP).apply {
+                setMargins(50, 50, 0, 0)
+            }
+        }
+        surfaceView?.background = ContextCompat.getDrawable(
+            context,
+            R.drawable.custom_background_remote_video_view
+        )
     }
 
     /**
