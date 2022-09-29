@@ -214,17 +214,6 @@ class VideoLiveStreamingController(
                     setZOrderOnTop(false)
                 }
 
-                val layoutParam = FrameLayout.LayoutParams(350, 200, Gravity.BOTTOM)
-                layoutParam.setMargins(50, 0, 0, 50)
-                surfaceView?.layoutParams = layoutParam
-                surfaceView?.background = ContextCompat.getDrawable(
-                    context,
-                    R.drawable.custom_background_remote_video_view
-                )
-
-                // Add to the remote video view
-                frameContainer?.addView(surfaceView)
-
                 // Add to the local video view
                 localVideoView = FrameLayout(context).apply {
                     layoutParams = FrameLayout.LayoutParams(
@@ -233,6 +222,13 @@ class VideoLiveStreamingController(
                     )
                 }
                 frameContainer?.addView(localVideoView)
+
+                val layoutParam = FrameLayout.LayoutParams(350, 200, Gravity.BOTTOM)
+                layoutParam.setMargins(50, 0, 0, 50)
+                surfaceView?.layoutParams = layoutParam
+
+                // Add to the remote video view
+                frameContainer?.addView(surfaceView)
 
                 // Setup remote video to render
                 rtcEngine?.setupRemoteVideo(VideoCanvas(surfaceView, RENDER_MODE_HIDDEN, uid))

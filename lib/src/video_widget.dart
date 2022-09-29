@@ -6,7 +6,7 @@ typedef ViewCreateCallback = void Function(LiveStreamingController controller);
 /// Callback that is called when the playback of a video is completed.
 typedef CompletionCallback = void Function(LiveStreamingController controller);
 
-class VideoLiveStreamingView extends StatefulWidget {
+class VideoLiveStreamingView extends StatelessWidget {
   /// Instance of [ViewCreatedCallback] to notify
   /// when the view is finished creating.
   final ViewCreateCallback onCreated;
@@ -21,11 +21,6 @@ class VideoLiveStreamingView extends StatefulWidget {
     Key? key,
   }) : super(key: key);
 
-  @override
-  State<VideoLiveStreamingView> createState() => _VideoLiveStreamingViewState();
-}
-
-class _VideoLiveStreamingViewState extends State<VideoLiveStreamingView> {
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.android) {
@@ -49,7 +44,7 @@ class _VideoLiveStreamingViewState extends State<VideoLiveStreamingView> {
 
   Future<void> onPlatformViewCreated(int id) async {
     final LiveStreamingController controller =
-        await LiveStreamingController.init(id);
-    widget.onCreated(controller);
+    await LiveStreamingController.init(id);
+    onCreated(controller);
   }
 }
