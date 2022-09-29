@@ -215,9 +215,8 @@ class VideoLiveStreamingController(
                 }
 
                 val layoutParam = FrameLayout.LayoutParams(350, 200, Gravity.BOTTOM)
-                layoutParam.setMargins(50, 0, 0, 0)
+                layoutParam.setMargins(50, 0, 0, 50)
                 surfaceView?.layoutParams = layoutParam
-                surfaceView?.setPadding(2,2,2,2)
                 surfaceView?.background = ContextCompat.getDrawable(
                     context,
                     R.drawable.custom_background_remote_video_view
