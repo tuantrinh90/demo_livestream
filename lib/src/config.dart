@@ -19,3 +19,7 @@ class Configuration {
         "uid": uid
       };
 }
+
+enum SoundMode { mute, unmute }
+
+enum OrientationMode { portrait, landscape }

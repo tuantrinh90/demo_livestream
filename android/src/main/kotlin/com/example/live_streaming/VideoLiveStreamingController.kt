@@ -22,11 +22,23 @@ import io.agora.rtc.ScreenCaptureParameters
 import io.agora.rtc.models.ChannelMediaOptions
 import io.agora.rtc.video.VideoCanvas
 import io.agora.rtc.video.VideoCanvas.RENDER_MODE_HIDDEN
+import io.agora.rtc.video.VideoEncoderConfiguration
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
 import java.util.*
+
+enum class OrientationMode {
+    PORTRAIT,
+    LANDSCAPE
+}
+
+fun String?.toOrientationMode(): OrientationMode = when (this) {
+    "portrait" -> OrientationMode.PORTRAIT
+    "landscape" -> OrientationMode.LANDSCAPE
+    else -> OrientationMode.PORTRAIT
+}
 
 class VideoLiveStreamingController(
     private val id: Int,
@@ -39,8 +51,9 @@ class VideoLiveStreamingController(
         private val TAG = VideoLiveStreamingController::class.java.simpleName
     }
 
-    private val methodChannel: MethodChannel =
-        MethodChannel(binaryMessenger, "video_live_streaming_$id")
+    private val METHOD_CHANNEL = "com.example.live_streaming/video_live_streaming_$id"
+
+    private val methodChannel: MethodChannel = MethodChannel(binaryMessenger, METHOD_CHANNEL)
 
     private val lifeCycleHashcode: Int
     private val constraintLayout: ConstraintLayout
@@ -53,10 +66,14 @@ class VideoLiveStreamingController(
     private var handler: Handler? = null
 
     private var uid: Int = 0
+    private var channelId: String? = null
+    private var accessToken: String? = null
 
     private var timer: Timer? = null
 
     private var disposed: Boolean = false
+
+    private var orientationMode: OrientationMode? = OrientationMode.PORTRAIT
 
     /**
      * IRtcEngineEventHandler is an abstract class providing default implementation.
@@ -223,8 +240,15 @@ class VideoLiveStreamingController(
                 }
                 frameContainer?.addView(localVideoView)
 
-                val layoutParam = FrameLayout.LayoutParams(350, 200, Gravity.BOTTOM)
-                layoutParam.setMargins(50, 0, 0, 50)
+                val layoutParam = FrameLayout.LayoutParams(350, 200)
+
+                if (orientationMode == OrientationMode.PORTRAIT) {
+                    layoutParam.gravity = Gravity.BOTTOM
+                    layoutParam.setMargins(50, 0, 0, 50)
+                } else {
+                    layoutParam.gravity = Gravity.TOP
+                    layoutParam.setMargins(50, 50, 0, 0)
+                }
                 surfaceView?.layoutParams = layoutParam
                 surfaceView?.background = ContextCompat.getDrawable(
                     context,
@@ -275,21 +299,32 @@ class VideoLiveStreamingController(
         when (call.method) {
             "stream#startStream" -> {
                 val appId = call.argument("appId") as? String
-                val accessToken = call.argument("accessToken") as? String
-                val channelId = call.argument("channelId") as? String
+                accessToken = call.argument("accessToken") as? String
+                channelId = call.argument("channelId") as? String
                 uid = call.argument("uid") ?: 0
 
                 try {
                     rtcEngine?.leaveChannel()
-                    rtcEngine =
-                        RtcEngine.create(context.applicationContext, appId, iRtcEngineEventHandler)
-                    joinChannel(channelId, uid, accessToken)
+                    rtcEngine = RtcEngine.create(context.applicationContext, appId, iRtcEngineEventHandler)
+
+                    // Current, use config default
+                    val config = VideoEncoderConfiguration()
+                    rtcEngine?.setVideoEncoderConfiguration(config)
+                    joinChannel()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
-            "stream#fullScreen" -> {
 
+            "stream#orientation" -> {
+                orientationMode = (call.argument("orientation") as? String)?.toOrientationMode()
+                rtcEngine?.leaveChannel()
+                joinChannel()
+            }
+
+            "stream#sound" -> {
+                val sound = call.argument("sound") as? String
+                rtcEngine?.muteRemoteAudioStream(uid, sound == "mute")
             }
         }
     }
@@ -342,7 +377,7 @@ class VideoLiveStreamingController(
         destroyVideoLiveStreaming()
     }
 
-    private fun joinChannel(channelId: String? = null, uid: Int = 0, accessToken: String? = null) {
+    private fun joinChannel() {
         /** Sets the channel profile of the Agora RtcEngine.
         CHANNEL_PROFILE_COMMUNICATION(0): (Default) The Communication profile.
         Use this profile in one-on-one calls or group calls, where all users can talk freely.

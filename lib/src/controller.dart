@@ -11,7 +11,7 @@ class LiveStreamingController {
 
   /// Initialize the controller
   static Future<LiveStreamingController> init(int id) async {
-    final MethodChannel channel = MethodChannel('video_live_streaming_$id');
+    final MethodChannel channel = MethodChannel('com.example.live_streaming/video_live_streaming_$id');
     return LiveStreamingController._(channel);
   }
 
@@ -23,10 +23,20 @@ class LiveStreamingController {
     }
   }
 
-  Future<void> fullScreenLiveStreaming() async {
-    try{
-      await _channel.invokeMethod('stream#fullScreen');
-    }catch(ex){
+  Future<void> setOrientationLiveStreaming(OrientationMode mode) async {
+    try {
+      Map<String, dynamic> args = {"orientation": mode.name};
+      await _channel.invokeMethod('stream#orientation', args);
+    } catch (ex) {
+      ex.toString();
+    }
+  }
+
+  Future<void> mute(SoundMode sound) async {
+    try {
+      Map<String, dynamic> args = {"sound": sound.name};
+      await _channel.invokeMethod('stream#sound', args);
+    } catch (ex) {
       ex.toString();
     }
   }
