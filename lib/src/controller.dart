@@ -17,8 +17,16 @@ class LiveStreamingController {
 
   Future<void> startStreaming(Configuration config) async {
     try {
-      await _channel.invokeMethod('stream#config', config.toJson());
+      await _channel.invokeMethod('stream#startStream', config.toJson());
     } catch (ex) {
+      ex.toString();
+    }
+  }
+
+  Future<void> fullScreenLiveStreaming() async {
+    try{
+      await _channel.invokeMethod('stream#fullScreen');
+    }catch(ex){
       ex.toString();
     }
   }

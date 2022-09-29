@@ -226,6 +226,10 @@ class VideoLiveStreamingController(
                 val layoutParam = FrameLayout.LayoutParams(350, 200, Gravity.BOTTOM)
                 layoutParam.setMargins(50, 0, 0, 50)
                 surfaceView?.layoutParams = layoutParam
+                surfaceView?.background = ContextCompat.getDrawable(
+                    context,
+                    R.drawable.custom_background_remote_video_view
+                )
 
                 // Add to the remote video view
                 frameContainer?.addView(surfaceView)
@@ -269,7 +273,7 @@ class VideoLiveStreamingController(
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         Log.d(TAG, "#onMethodCall: method = ${call.method}")
         when (call.method) {
-            "stream#config" -> {
+            "stream#startStream" -> {
                 val appId = call.argument("appId") as? String
                 val accessToken = call.argument("accessToken") as? String
                 val channelId = call.argument("channelId") as? String
@@ -283,6 +287,9 @@ class VideoLiveStreamingController(
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
+            }
+            "stream#fullScreen" -> {
+
             }
         }
     }
