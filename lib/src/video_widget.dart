@@ -7,6 +7,9 @@ typedef ViewCreateCallback = void Function(LiveStreamingController controller);
 typedef CompletionCallback = void Function(LiveStreamingController controller);
 
 class VideoLiveStreamingView extends StatelessWidget {
+
+  final String? appId;
+
   /// Instance of [ViewCreatedCallback] to notify
   /// when the view is finished creating.
   final ViewCreateCallback onCreated;
@@ -16,6 +19,7 @@ class VideoLiveStreamingView extends StatelessWidget {
   final CompletionCallback onCompletion;
 
   const VideoLiveStreamingView({
+    required this.appId,
     required this.onCreated,
     required this.onCompletion,
     Key? key,
@@ -24,10 +28,13 @@ class VideoLiveStreamingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.android) {
+      final Map<String, dynamic> creationParams = <String, dynamic>{
+        'appId': appId
+      };
       return AndroidView(
         viewType: 'video_live_streaming',
         onPlatformViewCreated: onPlatformViewCreated,
-        creationParams: null,
+        creationParams: creationParams,
         creationParamsCodec: const StandardMessageCodec(),
       );
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {

@@ -11,9 +11,16 @@ class VideoLiveStreamingFactory(
     private val lifecycleProvider: LifecycleProvider
 ) : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
 
+    private val APP_ID = "appId"
+
     @Suppress("UNCHECKED_CAST")
     override fun create(context: Context?, viewId: Int, args: Any?): PlatformView {
+        val params = args as Map<String, Any?>
         val builder = VideoLiveStreamingBuilder()
+        if (params.containsKey(APP_ID)) {
+            val appId = params[APP_ID] as String
+            builder.setAppIdArgument(appId)
+        }
         return builder.build(viewId, context, binaryMessenger, lifecycleProvider)
     }
 }

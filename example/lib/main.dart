@@ -34,16 +34,16 @@ class _MyAppState extends State<MyApp> {
                 DeviceOrientation.landscapeLeft,
                 DeviceOrientation.landscapeRight,
               ]);
-              _controller
-                  ?.setOrientationLiveStreaming(OrientationMode.landscape);
+              // _controller
+              //     ?.setOrientationLiveStreaming(OrientationMode.landscape);
             } else {
               isLandscape = false;
               SystemChrome.setPreferredOrientations([
                 DeviceOrientation.portraitUp,
                 DeviceOrientation.portraitDown,
               ]);
-              _controller
-                  ?.setOrientationLiveStreaming(OrientationMode.portrait);
+              // _controller
+              //     ?.setOrientationLiveStreaming(OrientationMode.portrait);
             }
             setState(() {});
           },
@@ -58,10 +58,10 @@ class _MyAppState extends State<MyApp> {
       height: isLandscape ? double.infinity : 250,
       alignment: Alignment.center,
       child: VideoLiveStreamingView(
+        appId: '088300519c194e81a67b1f7925b47296',
         onCreated: (controller) {
           _controller = controller;
           controller.startStreaming(Configuration(
-              appId: '088300519c194e81a67b1f7925b47296',
               accessToken:
                   '006a023c5b9b23344c1a40e901d3900c0eeIADR5QKiyEzaCWCjQlTY4rTEiGhIlU8+xtlEdz/91zG6LEncfOMNvtUaEABLEAAAHbc2YwEAAQBdOjdj',
               channelId: 'butai-channel-111',

@@ -42,6 +42,7 @@ fun String?.toOrientationMode(): OrientationMode = when (this) {
 
 class VideoLiveStreamingController(
     private val id: Int,
+    private val appId: String,
     private val context: Context,
     binaryMessenger: BinaryMessenger,
     private val lifecycleProvider: LifecycleProvider
@@ -228,6 +229,7 @@ class VideoLiveStreamingController(
                     setZOrderMediaOverlay(true)
                     setZOrderOnTop(false)
                 }
+                surfaceView?.holder?.addCallback(surfaceViewCallBack)
 
                 // Add to the local video view
                 localVideoView = FrameLayout(context).apply {
@@ -270,6 +272,29 @@ class VideoLiveStreamingController(
         }
     }
 
+    val surfaceViewCallBack = object: SurfaceHolder.Callback {
+        override fun surfaceCreated(p0: SurfaceHolder) {
+            Log.d("MuoiPB", "#surfaceCreated")
+        }
+
+        override fun surfaceChanged(p0: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
+            Log.d("MuoiPB", "#surfaceChanged")
+            timer = Timer()
+            timer?.schedule(object : TimerTask() {
+                override fun run() {
+                    surfaceView?.let {
+                        getBitMapFromSurfaceView(it)
+                    }
+                }
+            }, 50, 50)
+        }
+
+        override fun surfaceDestroyed(p0: SurfaceHolder) {
+            Log.d("MuoiPB", "#surfaceDestroyed")
+            timer?.cancel()
+        }
+    }
+
     init {
         methodChannel.setMethodCallHandler(this)
         lifeCycleHashcode = lifecycleProvider.getLifecycle().hashCode()
@@ -283,22 +308,10 @@ class VideoLiveStreamingController(
         Log.d(TAG, "#onMethodCall: method = ${call.method}")
         when (call.method) {
             "stream#startStream" -> {
-                val appId = call.argument("appId") as? String
                 val accessToken = call.argument("accessToken") as? String
                 val channelId = call.argument("channelId") as? String
                 uid = call.argument("uid") ?: 0
-
-                try {
-                    rtcEngine?.leaveChannel()
-                    rtcEngine = RtcEngine.create(context.applicationContext, appId, iRtcEngineEventHandler)
-
-                    // Current, use config default
-                    val config = VideoEncoderConfiguration()
-                    rtcEngine?.setVideoEncoderConfiguration(config)
-                    joinChannel(channelId, accessToken)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                joinChannel(channelId, accessToken)
             }
 
             "stream#orientation" -> {
@@ -307,8 +320,8 @@ class VideoLiveStreamingController(
             }
 
             "stream#sound" -> {
-                val sound = call.argument("sound") as? String
-                rtcEngine?.muteRemoteAudioStream(uid, sound == "mute")
+                val sound = call.argument("sound") as? Boolean
+                rtcEngine?.muteRemoteAudioStream(uid, sound == true)
             }
         }
     }
@@ -335,19 +348,20 @@ class VideoLiveStreamingController(
         super.onCreate(owner)
         Log.d(TAG, "#onCreate")
         handler = Handler(Looper.getMainLooper())
+
+        // initialization RtcEngine
+        try {
+            rtcEngine = RtcEngine.create(context.applicationContext, appId, iRtcEngineEventHandler)
+            val config = VideoEncoderConfiguration()
+            rtcEngine?.setVideoEncoderConfiguration(config)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onResume(owner: LifecycleOwner) {
         super.onResume(owner)
         Log.d(TAG, "#onResume")
-        timer = Timer()
-        timer?.schedule(object : TimerTask() {
-            override fun run() {
-                surfaceView?.let {
-                    getBitMapFromSurfaceView(it)
-                }
-            }
-        }, 50, 50)
     }
 
     override fun onPause(owner: LifecycleOwner) {

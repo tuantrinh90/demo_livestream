@@ -32,9 +32,9 @@ class LiveStreamingController {
     }
   }
 
-  Future<void> mute(SoundMode sound) async {
+  Future<void> mute(bool isMute) async {
     try {
-      Map<String, dynamic> args = {"sound": sound.name};
+      Map<String, dynamic> args = {"sound": isMute};
       await _channel.invokeMethod('stream#sound', args);
     } catch (ex) {
       ex.toString();
