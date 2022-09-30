@@ -275,11 +275,11 @@ class VideoLiveStreamingController(
 
     val surfaceViewCallBack = object: SurfaceHolder.Callback {
         override fun surfaceCreated(p0: SurfaceHolder) {
-            Log.d("MuoiPB", "#surfaceCreated")
+            Log.d(TAG, "#surfaceCreated")
         }
 
         override fun surfaceChanged(p0: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
-            Log.d("MuoiPB", "#surfaceChanged")
+            Log.d(TAG, "#surfaceChanged")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 timer = Timer()
                 timer?.scheduleAtFixedRate(object : TimerTask() {
@@ -293,7 +293,7 @@ class VideoLiveStreamingController(
         }
 
         override fun surfaceDestroyed(p0: SurfaceHolder) {
-            Log.d("MuoiPB", "#surfaceDestroyed")
+            Log.d(TAG, "#surfaceDestroyed")
             timer?.cancel()
         }
     }
@@ -441,7 +441,7 @@ class VideoLiveStreamingController(
      * Won't work on Normal View
      */
     @RequiresApi(Build.VERSION_CODES.N)
-    private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
+   /* private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
         Log.d(TAG, "#getBitMapFromSurfaceView")
         if (videoView.width <= 0 || videoView.height <= 0) return
         val bitmap: Bitmap = Bitmap.createBitmap(
@@ -465,9 +465,9 @@ class VideoLiveStreamingController(
             // PixelCopy may throw IllegalArgumentException, make sure to handle it
             e.printStackTrace()
         }
-    }
+    }*/
 
-    /*private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
+    private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
         Log.d(TAG, "#getBitMapFromSurfaceView")
         if (videoView.width <= 0 || videoView.height <= 0) return
         val bitmap: Bitmap = Bitmap.createBitmap(
@@ -497,5 +497,5 @@ class VideoLiveStreamingController(
             // PixelCopy may throw IllegalArgumentException, make sure to handle it
             e.printStackTrace()
         }
-    }*/
+    }
 }
