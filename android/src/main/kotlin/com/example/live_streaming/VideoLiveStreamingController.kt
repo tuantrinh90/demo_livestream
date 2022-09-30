@@ -11,6 +11,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.*
 import android.widget.FrameLayout
+import androidx.annotation.RequiresApi
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -279,14 +280,16 @@ class VideoLiveStreamingController(
 
         override fun surfaceChanged(p0: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
             Log.d("MuoiPB", "#surfaceChanged")
-            timer = Timer()
-            timer?.schedule(object : TimerTask() {
-                override fun run() {
-                    surfaceView?.let {
-                        getBitMapFromSurfaceView(it)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                timer = Timer()
+                timer?.scheduleAtFixedRate(object : TimerTask() {
+                    override fun run() {
+                        surfaceView?.let {
+                            getBitMapFromSurfaceView(it)
+                        }
                     }
-                }
-            }, 50, 50)
+                }, 50, 50)
+            }
         }
 
         override fun surfaceDestroyed(p0: SurfaceHolder) {
@@ -437,7 +440,34 @@ class VideoLiveStreamingController(
      * Work with Surface View, Video View
      * Won't work on Normal View
      */
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
+        Log.d(TAG, "#getBitMapFromSurfaceView")
+        if (videoView.width <= 0 || videoView.height <= 0) return
+        val bitmap: Bitmap = Bitmap.createBitmap(
+            videoView.width,
+            videoView.height,
+            Bitmap.Config.ARGB_8888
+        )
+        try {
+            PixelCopy.request(
+                videoView, bitmap, { copyResult ->
+                    if (copyResult == PixelCopy.SUCCESS) {
+                        handler?.post {
+                            val drawable: Drawable = BitmapDrawable(context.resources, bitmap)
+                            localVideoView?.background = drawable
+                        }
+                    }
+                },
+                Handler(Looper.getMainLooper())
+            )
+        } catch (e: IllegalArgumentException) {
+            // PixelCopy may throw IllegalArgumentException, make sure to handle it
+            e.printStackTrace()
+        }
+    }
+
+    /*private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
         Log.d(TAG, "#getBitMapFromSurfaceView")
         if (videoView.width <= 0 || videoView.height <= 0) return
         val bitmap: Bitmap = Bitmap.createBitmap(
@@ -467,5 +497,5 @@ class VideoLiveStreamingController(
             // PixelCopy may throw IllegalArgumentException, make sure to handle it
             e.printStackTrace()
         }
-    }
+    }*/
 }
