@@ -16,6 +16,8 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.otaliastudios.zoom.Alignment
+import com.otaliastudios.zoom.ZoomLayout
 import io.agora.rtc.Constants
 import io.agora.rtc.IRtcEngineEventHandler
 import io.agora.rtc.RtcEngine
@@ -63,6 +65,7 @@ class VideoLiveStreamingController(
     private var frameContainer: FrameLayout? = null
     private var localVideoView: FrameLayout? = null
     private var surfaceView: SurfaceView? = null
+    private var zoomLayout: ZoomLayout? = null
 
     private var rtcEngine: RtcEngine? = null
     private var handler: Handler? = null
@@ -217,6 +220,7 @@ class VideoLiveStreamingController(
          * @param uid ID of the user whose audio state changes.
          * @param elapsed Time delay (ms) from the local user calling joinChannel/setClientRole
          *                until this callback is triggered.*/
+        @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
         override fun onUserJoined(uid: Int, elapsed: Int) {
             super.onUserJoined(uid, elapsed)
             Log.i(TAG, "#onUserJoined->$uid")
@@ -227,19 +231,42 @@ class VideoLiveStreamingController(
 
                 // Create render view by RtcEngine
                 surfaceView = RtcEngine.CreateRendererView(context).apply {
-                    setZOrderMediaOverlay(true)
+//                    setZOrderMediaOverlay(true)
                     setZOrderOnTop(false)
                 }
                 surfaceView?.holder?.addCallback(surfaceViewCallBack)
 
-                // Add to the local video view
-                localVideoView = FrameLayout(context).apply {
+                zoomLayout = ZoomLayout(context).apply {
                     layoutParams = FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT
                     )
                 }
-                frameContainer?.addView(localVideoView)
+
+                zoomLayout?.setMinZoom(1f)
+                zoomLayout?.setMaxZoom(2.5f)
+                zoomLayout?.setZoomEnabled(true)
+                zoomLayout?.setAlignment(Alignment.TOP)
+
+                if (zoomLayout?.getMinZoom() == 1f) {
+                    zoomLayout?.setMinZoom(1f)
+                    zoomLayout?.setAllowFlingInOverscroll(false)
+                    zoomLayout?.setFlingEnabled(false)
+                    zoomLayout?.setOverPinchable(false)
+                    zoomLayout?.setOverScrollHorizontal(false)
+                    zoomLayout?.setOverScrollVertical(false)
+                }
+
+                // Add to the local video view
+                localVideoView = FrameLayout(context)
+                localVideoView?.layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+
+                zoomLayout?.addView(localVideoView)
+
+                frameContainer?.addView(zoomLayout)
 
                 setLayoutParamRemoteVideo(surfaceView, orientationMode)
 
@@ -275,11 +302,11 @@ class VideoLiveStreamingController(
 
     val surfaceViewCallBack = object: SurfaceHolder.Callback {
         override fun surfaceCreated(p0: SurfaceHolder) {
-            Log.d(TAG, "#surfaceCreated")
+            Log.d("MuoiPB", "#surfaceCreated")
         }
 
         override fun surfaceChanged(p0: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
-            Log.d(TAG, "#surfaceChanged")
+            Log.d("MuoiPB", "#surfaceChanged")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 timer = Timer()
                 timer?.scheduleAtFixedRate(object : TimerTask() {
@@ -293,7 +320,7 @@ class VideoLiveStreamingController(
         }
 
         override fun surfaceDestroyed(p0: SurfaceHolder) {
-            Log.d(TAG, "#surfaceDestroyed")
+            Log.d("MuoiPB", "#surfaceDestroyed")
             timer?.cancel()
         }
     }
@@ -425,6 +452,11 @@ class VideoLiveStreamingController(
                 setMargins(50, 0, 0, 50)
             }
         } else {
+            zoomLayout?.layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+
             surfaceView?.layoutParams = FrameLayout.LayoutParams(350, 200, Gravity.TOP).apply {
                 setMargins(50, 50, 0, 0)
             }
@@ -441,31 +473,31 @@ class VideoLiveStreamingController(
      * Won't work on Normal View
      */
     @RequiresApi(Build.VERSION_CODES.N)
-   /* private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
-        Log.d(TAG, "#getBitMapFromSurfaceView")
-        if (videoView.width <= 0 || videoView.height <= 0) return
-        val bitmap: Bitmap = Bitmap.createBitmap(
-            videoView.width,
-            videoView.height,
-            Bitmap.Config.ARGB_8888
-        )
-        try {
-            PixelCopy.request(
-                videoView, bitmap, { copyResult ->
-                    if (copyResult == PixelCopy.SUCCESS) {
-                        handler?.post {
-                            val drawable: Drawable = BitmapDrawable(context.resources, bitmap)
-                            localVideoView?.background = drawable
-                        }
-                    }
-                },
-                Handler(Looper.getMainLooper())
-            )
-        } catch (e: IllegalArgumentException) {
-            // PixelCopy may throw IllegalArgumentException, make sure to handle it
-            e.printStackTrace()
-        }
-    }*/
+//    private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
+//        Log.d(TAG, "#getBitMapFromSurfaceView")
+//        if (videoView.width <= 0 || videoView.height <= 0) return
+//        val bitmap: Bitmap = Bitmap.createBitmap(
+//            videoView.width,
+//            videoView.height,
+//            Bitmap.Config.ARGB_8888
+//        )
+//        try {
+//            PixelCopy.request(
+//                videoView, bitmap, { copyResult ->
+//                    if (copyResult == PixelCopy.SUCCESS) {
+//                        handler?.post {
+//                            val drawable: Drawable = BitmapDrawable(context.resources, bitmap)
+//                            localVideoView?.background = drawable
+//                        }
+//                    }
+//                },
+//                Handler(Looper.getMainLooper())
+//            )
+//        } catch (e: IllegalArgumentException) {
+//            // PixelCopy may throw IllegalArgumentException, make sure to handle it
+//            e.printStackTrace()
+//        }
+//    }
 
     private fun getBitMapFromSurfaceView(videoView: SurfaceView) {
         Log.d(TAG, "#getBitMapFromSurfaceView")
